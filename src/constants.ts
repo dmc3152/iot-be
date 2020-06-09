@@ -1,0 +1,4 @@
+export const constants = {
+    DATABASE_CONNECTION: 'DATABASE_CONNECTION',
+    DATABASE_CLIENT: 'DATABASE_CLIENT'
+};
