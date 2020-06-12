@@ -3,7 +3,7 @@ import { User } from "./user";
 import { constants } from "../constants";
 
 @Injectable()
-export class UsersRepository {
+export class UserRepository {
 
   constructor(@Inject(constants.DATABASE_CLIENT) private pool: any) { }
 
