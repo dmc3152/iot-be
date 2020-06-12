@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { DatabaseModule } from "src/orientdb/orientdb.module";
+import { OrientDBModule } from "src/orientdb/orientdb.module";
 import { clientProviders } from "src/orientdb/client.providers"
 
 @Module({
-    imports: [DatabaseModule],
+    imports: [OrientDBModule],
     providers: [...clientProviders],
     exports: [...clientProviders],
 })

@@ -5,4 +5,4 @@ import { databaseProviders } from './orientdb.providers';
     providers: [...databaseProviders],
     exports: [...databaseProviders],
 })
-export class DatabaseModule {}
+export class OrientDBModule {}
