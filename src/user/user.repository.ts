@@ -46,7 +46,7 @@ export class UserRepository {
 
     // make request
     try {
-      const result = await session.query('SELECT @rid, name, email FROM User WHERE email = :email', {params: params}).one();
+      const result = await session.query('SELECT @rid, name, email, password FROM User WHERE email = :email', {params: params}).one();
 
       await session.close();
       return result ? new User(result) : null;

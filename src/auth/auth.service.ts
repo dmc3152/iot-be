@@ -32,7 +32,7 @@ export class AuthService {
                 ...registrationData,
                 password: hashedPassword
             });
-            createdUser.password = undefined;
+            delete createdUser.password;
             return createdUser;
         } catch (error) {
             throw error;
