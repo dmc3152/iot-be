@@ -24,6 +24,15 @@ export class AuthService {
         return `Authentication=; HttpOnly; Path=/; Max-Age=0`;
     }
 
+    public getJwtToken(id: string) {
+        const payload: TokenPayload = { id };
+        const token = this.jwtService.sign(payload);
+        return {
+            authToken: token,
+            expiresIn: this.config.get('JWT_EXPIRATION_TIME')
+        };
+    }
+
     public async register(registrationData: RegistrationDataDto) {
         const hashedPassword = await hash(registrationData.password, 10);
 
