@@ -41,7 +41,7 @@ export class AuthService {
                 ...registrationData,
                 password: hashedPassword
             });
-            delete createdUser.password;
+            createdUser.password = undefined;
             return createdUser;
         } catch (error) {
             throw error;
