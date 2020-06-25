@@ -10,7 +10,6 @@ import {
 import { UserService } from "./user.service";
 import { CreateUserDto } from "./dto/createUser.dto";
 import { UpdateUserDto } from "./dto/updateUser.dto";
-import { UserDto } from "./dto/user.dto";
 
 @Controller('user')
 export class UserController {

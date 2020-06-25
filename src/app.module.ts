@@ -6,6 +6,8 @@ import { EasyconfigModule } from 'nestjs-easyconfig';
 import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
+import { DeviceModule } from './device/device.module';
+import { SchemaModule } from './schema/schema.module';
 
 @Module({
   imports: [
@@ -14,7 +16,9 @@ import { UserModule } from './user/user.module';
     }),
     EasyconfigModule.register({ path: './config/.env', safe: true }),
     AuthModule,
-    UserModule
+    UserModule,
+    DeviceModule,
+    SchemaModule
   ],
   controllers: [AppController],
   providers: [AppService],

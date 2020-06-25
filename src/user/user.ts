@@ -9,6 +9,8 @@ export class User {
         this.email = data.email || null;
         this.name = data.name || null;
         this.password = data.password || null;
+
+        this.id = this.id ? this.id.toString().replace('#', '') : null;
     }
 }
 
