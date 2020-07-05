@@ -6,7 +6,7 @@ import { EasyconfigModule } from 'nestjs-easyconfig';
 @Module({
     imports: [
         OrientDBModule,
-        EasyconfigModule.register({ path: './config/.env', safe: true }),
+        EasyconfigModule.register({ path: '.env', safe: true }),
     ],
     providers: [...clientProviders],
     exports: [...clientProviders],

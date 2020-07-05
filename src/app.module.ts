@@ -14,7 +14,7 @@ import { SchemaModule } from './schema/schema.module';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'client'),
     }),
-    EasyconfigModule.register({ path: './config/.env', safe: true }),
+    EasyconfigModule.register({ path: '.env', safe: true }),
     AuthModule,
     UserModule,
     DeviceModule,

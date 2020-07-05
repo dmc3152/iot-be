@@ -3,7 +3,7 @@ import { databaseProviders } from './orientdb.providers';
 import { EasyconfigModule } from 'nestjs-easyconfig';
 
 @Module({
-    imports: [EasyconfigModule.register({ path: './config/.env', safe: true })],
+    imports: [EasyconfigModule.register({ path: '.env', safe: true })],
     providers: [...databaseProviders],
     exports: [...databaseProviders],
 })

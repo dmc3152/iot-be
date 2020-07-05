@@ -12,10 +12,10 @@ import { JwtStrategy } from './jwt.strategy';
   imports: [
     UserModule,
     PassportModule,
-    EasyconfigModule.register({ path: './config/.env', safe: true }),
+    EasyconfigModule.register({ path: '.env', safe: true }),
     JwtModule.registerAsync({
       imports: [
-        EasyconfigModule.register({ path: './config/.env', safe: true }),
+        EasyconfigModule.register({ path: '.env', safe: true }),
         UserModule,
         PassportModule
       ],
