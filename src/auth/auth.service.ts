@@ -55,7 +55,7 @@ export class AuthService {
             user.password = undefined;
             return user;
         } catch (error) {
-            throw new HttpException('Wrong credentials provided test', HttpStatus.BAD_REQUEST);
+            throw new HttpException('Wrong credentials provided test 2', HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -63,6 +63,6 @@ export class AuthService {
         const isPasswordMatching = await compare(plainTextPassword, hashedPassword);
 
         if (!isPasswordMatching)
-            throw new HttpException('Wrong credentials provided test', HttpStatus.BAD_REQUEST);
+            throw new HttpException('Wrong credentials provided test 2', HttpStatus.BAD_REQUEST);
     }
 }
