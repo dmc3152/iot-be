@@ -5,180 +5,106 @@ import { constants } from "../constants";
 @Injectable()
 export class DeviceRepository {
 
-  constructor(@Inject(constants.DATABASE_CLIENT) private pool: any) { }
+  constructor(@Inject(constants.DATABASE_CLIENT) private db: any) { }
 
   async getDevices(userId): Promise<Array<Device>> {
-    let session;
-
-    // get session
     try {
-      session = await this.pool.acquire();
-    } catch(error) {
-      throw new ServiceUnavailableException();
-    }
-
-    const params = { userId };
-
-    // make request
-    try {
-      const result = await session.query('SELECT *, schema:{*} FROM (SELECT expand(devices) FROM User WHERE @rid = :userId)', {params}).all();
+      const result = await this.db.select('expand(out("Owns"))').from('User').where({ '@rid': userId }).all();
       const devices = result.map(device => {
-          return new Device(device);
+        return new Device(device);
       });
-
-      await session.close();
       return devices;
     } catch (error) {
-      await session.close();
       throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   async getDeviceByGuid(guid: string): Promise<Device> {
-    let session;
-
-    // get session
-    try {
-      session = await this.pool.acquire();
-    } catch(error) {
-      throw new ServiceUnavailableException();
-    }
-
     const params = { guid };
 
     // make request
     try {
-      const result = await session.query('SELECT *, schema:{*} FROM Device WHERE guid = :guid', {params}).one();
-
-      await session.close();
-      return result ? new Device(result) : null;
+      // const result = await this.db.query('SELECT *, schema:{*} FROM Device WHERE guid = :guid', { params }).one();
+      const device = await this.db.select('*, out("Uses") as schema').from('Device').where(params).one();
+      device.schema = await this.db.select().from(device.schema).all();
+      return device ? new Device(device) : null;
     } catch (error) {
-      await session.close();
       throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   async getDeviceById(id: string): Promise<Device> {
-    let session;
-
-    // get session
-    try {
-      session = await this.pool.acquire();
-    } catch(error) {
-      throw new ServiceUnavailableException();
-    }
-
-    const params = { id };
+    const params = { '@rid': id };
 
     // make request
     try {
-      const result = await session.query('SELECT *, schema:{*} FROM Device WHERE @rid = :id', {params}).one();
-
-      await session.close();
-      return result ? new Device(result) : null;
+      const device = await this.db.select('*, out("Uses") as schema').from('Device').where(params).one();
+      device.schema = await this.db.select().from(device.schema).all();
+      return device ? new Device(device) : null;
     } catch (error) {
-      await session.close();
       throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
+  // TODO: double check assigning DataSchema to Device
   async addDevice(device: Device, userId: string): Promise<any> {
-    let session, result, exception: HttpException;
-
-    // get session
-    try {
-      session = await this.pool.acquire();
-    } catch(error) {
-      throw new ServiceUnavailableException();
-    }
-
+    var db = this.db;
     const schema = device.schema.map(function (schema) {
       return schema.id;
     });
-    delete device.schema;
-
-    const params = { userId, ...device, schema };
 
     try {
-      const batch = `begin;
-            let $schema = (SELECT @rid FROM DataSchema WHERE @rid IN :schema);
-            let $result = UPDATE User SET devices = devices || (INSERT INTO Device SET guid = uuid(), name = :name, data = :data, schema = $schema) WHERE @rid = :userId;
-            commit;
-            return $result;`;
-
-      result = await session.batch(batch, { params }).all();
+      return this.db.let('device', function (d) {
+        d.create('vertex', 'Device')
+          .set({
+            guid: db.rawExpression("format('%s',uuid())"),
+            name: device.name
+          })
+      })
+        .let('owns', function (o) {
+          o.create('edge', 'Owns')
+            .from(userId).to('$device')
+        })
+        .let('schema', function (s) {
+          if (schema.length) {
+            s.create('edge', 'Uses')
+              .from('$device').to(schema)
+          } else {
+            s.select().from('$device'); // placeholder... I don't know how to return null
+          }
+        })
+        .commit().return('$device').one();
     } catch (error) {
-      exception = error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
-    await session.close();
-
-    if (exception)
-      throw exception;
-
-    return result;
   }
 
   async updateDevice(device: Device): Promise<Device> {
-    let session, result, exception: HttpException;
-
-    // get session
-    try {
-      session = await this.pool.acquire();
-    } catch(error) {
-      throw new ServiceUnavailableException();
-    }
-
-    if (!device.guid)
+    if (!device.guid || !device.id)
       throw new BadRequestException();
 
     const params = { ...device };
     delete params.id;
 
     try {
-      result = await session.update(device.id)
+      return await this.db.update(device.id)
         .set(params)
         .one();
-      await session.close();
     } catch (error) {
-      exception = error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
-    await session.close();
-
-    if (exception)
-      throw exception;
-
-    return result;
   }
 
   async deleteDevice(rid): Promise<any> {
-    let session, result, exception: HttpException;
-
-    // get session
-    try {
-      session = await this.pool.acquire();
-    } catch(error) {
-      throw new ServiceUnavailableException();
-    }
-
     if (!rid)
       throw new BadRequestException();
 
     try {
-      result = session.delete("VERTEX", 'Device')
+      return this.db.delete("VERTEX", 'Device')
         .where('@rid = ' + rid)
         .one();
-      await session.close();
     } catch (error) {
-      exception = error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
-    await session.close();
-
-    if (exception)
-      throw exception;
-
-    return result;
   }
 }

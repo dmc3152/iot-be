@@ -5,151 +5,88 @@ import { constants } from "../constants";
 @Injectable()
 export class SchemaRepository {
 
-    constructor(@Inject(constants.DATABASE_CLIENT) private pool: any) { }
+    constructor(@Inject(constants.DATABASE_CLIENT) private db: any) { }
 
     async getDataSchemas(userId): Promise<Array<DataSchema>> {
-        let session;
-
-        // get session
         try {
-            session = await this.pool.acquire();
+            const result = await this.db.select('expand(out("Created"))').from('User').where({ '@rid': userId }).all();
+            return result.map(dataSchema => new DataSchema(dataSchema));
         } catch (error) {
-            throw new ServiceUnavailableException();
-        }
-
-        const params = { userId };
-
-        // make request
-        try {
-            const result = await session.query('SELECT expand(dataSchemas) FROM User WHERE @rid = :userId', { params }).all();
-            const dataSchemas = result.map(dataSchema => new DataSchema(dataSchema));
-
-            await session.close();
-            return dataSchemas;
-        } catch (error) {
-            console.log('error', error);
-            await session.close();
             throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     async getDataSchemaById(id: string): Promise<DataSchema> {
-        let session;
-
-        // get session
-        try {
-            session = await this.pool.acquire();
-        } catch (error) {
-            throw new ServiceUnavailableException();
-        }
-
-        const params = { id };
+        const params = { '@rid': id };
 
         // make request
         try {
-            const result = await session.query('SELECT * FROM DataSchema WHERE @rid = :id', { params }).one();
-
-            await session.close();
-            return result ? new DataSchema(result) : null;
+            const schema = await this.db.select('*, out("Applies") as schema').from('DataSchema').where(params).one();
+            return schema ? new DataSchema(schema) : null;
         } catch (error) {
-            await session.close();
             throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     async addDataSchema(dataSchema: DataSchema, userId: string): Promise<any> {
-        let session, result, exception: HttpException;
-
-        // get session
-        try {
-            session = await this.pool.acquire();
-        } catch (error) {
-            throw new ServiceUnavailableException();
-        }
-
-        const params = { userId, ...dataSchema };
+        const schema = dataSchema.schema.map(function (schema) {
+            return schema.id;
+        });
 
         try {
-            const batch = `begin;
-            let $result = UPDATE User SET dataSchemas = dataSchemas || (INSERT INTO DataSchema SET unit = :unit, name = :name, key = :key, schema = :schema) WHERE @rid = :userId;
-            commit;
-            return $result;`;
-
-            result = await session.batch(batch, { params }).all();
+            return this.db.let('dataSchema', function (d) {
+                d.create('vertex', 'DataSchema')
+                  .set({
+                    unit: dataSchema.unit,
+                    name: dataSchema.name,
+                    key: dataSchema.key
+                  })
+              })
+                .let('owns', function (o) {
+                  o.create('edge', 'Created')
+                    .from(userId).to('$dataSchema')
+                })
+                .let('schema', function (s) {
+                  if (schema.length) {
+                    s.create('edge', 'Applies')
+                      .from('$dataSchema').to(schema)
+                  } else {
+                    s.select().from('$dataSchema'); // placeholder... I don't know how to return null
+                  }
+                })
+                .commit().return('$dataSchema').one();
         } catch (error) {
-            exception = error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+            throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
-        await session.close();
-
-        if (exception)
-            throw exception;
-
-        return result;
     }
 
+    // TODO: determine how to handle updating child schema associations on update
     async updateDataSchema(dataSchema: DataSchema): Promise<DataSchema> {
-        let session, result, exception: HttpException;
-
-        // get session
-        try {
-            session = await this.pool.acquire();
-        } catch (error) {
-            throw new ServiceUnavailableException();
-        }
-
         if (!dataSchema.id)
             throw new BadRequestException();
 
         const params = { ...dataSchema };
         delete params.id;
-
+        
         try {
-            result = await session.update(dataSchema.id)
-                .set(params)
-                .one();
-
-            result = new DataSchema(result);
-            await session.close();
-        } catch (error) {
-            exception = error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
-        await session.close();
-
-        if (exception)
-            throw exception;
-
-        return result;
+            return await this.db.update(dataSchema.id)
+              .set(params)
+              .one();
+          } catch (error) {
+            throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+          }
     }
 
     async deleteDataSchema(rid): Promise<any> {
-        let session, result, exception: HttpException;
-
-        // get session
-        try {
-            session = await this.pool.acquire();
-        } catch (error) {
-            throw new ServiceUnavailableException();
-        }
-
         if (!rid)
             throw new BadRequestException();
-
+            
         try {
-            result = session.delete("VERTEX", 'DataSchema')
-                .where('@rid = ' + rid)
-                .one();
-            await session.close();
-        } catch (error) {
-            exception = error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
-        await session.close();
-
-        if (exception)
-            throw exception;
-
-        return result;
+            return this.db.delete("VERTEX", 'DataSchema')
+              .where('@rid = ' + rid)
+              .one();
+          } catch (error) {
+            throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+          }
     }
 }

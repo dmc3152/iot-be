@@ -7,9 +7,9 @@ export const databaseProviders = [
     {
         provide: constants.DATABASE_CONNECTION,
         useFactory: async (config: EasyconfigService) => {
-            let client;
+            let server;
             try {
-                client = await OrientDB({
+                server = await OrientDB({
                     host: config.get('DATABASE_HOST'),
                     port: config.get('DATABASE_PORT'),
                     username: config.get('DATABASE_USERNAME'),
@@ -19,7 +19,7 @@ export const databaseProviders = [
                 return false;
             }
 
-            return client;
+            return server;
         },
         inject: [EasyconfigService]
     },

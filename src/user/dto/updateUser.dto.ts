@@ -1,5 +1,5 @@
 export class UpdateUserDto {
-    "@rid": string;
+    "rid": string;
     "email": string;
     "name": string;
     "password": string;
