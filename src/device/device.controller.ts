@@ -31,8 +31,9 @@ export class DeviceController {
 
     @UseGuards(JwtAuthenticationGuard)
     @Put()
-    async updateDevice(@Body() device: UpdateDeviceDto) {
-        return await this.deviceService.updateDevice(device);
+    async updateDevice(@Body() device: UpdateDeviceDto, @Req() request: RequestWithUser) {
+        const userId = request.user.id;
+        return await this.deviceService.updateDevice(device, userId);
     }
 
     @UseGuards(JwtAuthenticationGuard)

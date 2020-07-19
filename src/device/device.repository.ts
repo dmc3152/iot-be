@@ -83,12 +83,12 @@ export class DeviceRepository {
     if (!device.guid || !device.id)
       throw new BadRequestException();
 
-    const params = { ...device };
-    delete params.id;
-
     try {
       return await this.db.update(device.id)
-        .set(params)
+        .set({
+          guid: device.guid,
+          name: device.name
+        })
         .one();
     } catch (error) {
       throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);

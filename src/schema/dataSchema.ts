@@ -12,7 +12,7 @@ export class DataSchema {
         this.key = data.key || null;
         this.name = data.name || null;
         this.unit = data.unit || null;
-        this.schema = data.schema || [];
+        this.schema = Array.isArray(data.schema) ? data.schema.map(schema => new DataSchema(schema)) : [];
     }
 }
 

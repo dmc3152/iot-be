@@ -31,8 +31,9 @@ export class SchemaController {
 
     @UseGuards(JwtAuthenticationGuard)
     @Put()
-    async updateDataSchema(@Body() dataSchema: UpdateDataSchemaDto) {
-        return await this.schemaService.updateDataSchema(dataSchema);
+    async updateDataSchema(@Body() dataSchema: UpdateDataSchemaDto, @Req() request: RequestWithUser) {
+        const userId = request.user.id;
+        return await this.schemaService.updateDataSchema(dataSchema, userId);
     }
 
     @UseGuards(JwtAuthenticationGuard)

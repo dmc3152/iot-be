@@ -18,12 +18,39 @@ export class SchemaService {
 
     public async addDataSchema(data: CreateDataSchemaDto, id: string): Promise<any> {
         const dataSchema = new DataSchema(data);
+        dataSchema.schema = await addDataSchemaRecursive(dataSchema.schema, this.schemaRepository);
         return this.schemaRepository.addDataSchema(dataSchema, id);
+
+        async function addDataSchemaRecursive(schemas: Array<DataSchema>, schemaRepository: SchemaRepository) {
+            for (let i in schemas) {
+                if (schemas[i].schema.length)
+                    schemas[i].schema = await addDataSchemaRecursive(schemas[i].schema, schemaRepository);
+
+                schemas[i] = new DataSchema(await schemaRepository.addDataSchema(schemas[i], id));
+            }
+
+            return schemas;
+        }
     }
 
-    public async updateDataSchema(data: UpdateDataSchemaDto): Promise<DataSchema> {
+    public async updateDataSchema(data: UpdateDataSchemaDto, id: string): Promise<DataSchema> {
         const dataSchema = new DataSchema(data);
+        dataSchema.schema = await updateDataSchemaRecursive(dataSchema.schema, this.schemaRepository);
         return this.schemaRepository.updateDataSchema(dataSchema);
+
+        async function updateDataSchemaRecursive(schemas: Array<DataSchema>, schemaRepository: SchemaRepository) {
+            for (let i in schemas) {
+                if (schemas[i].schema.length)
+                    schemas[i].schema = await updateDataSchemaRecursive(schemas[i].schema, schemaRepository);
+
+                if (schemas[i].id)
+                    await schemaRepository.updateDataSchema(schemas[i]);
+                else
+                    schemas[i] = new DataSchema(await schemaRepository.addDataSchema(schemas[i], id));
+            }
+            
+            return schemas;
+        }
     }
 
     public async deleteDataSchema(rid: string): Promise<any> {

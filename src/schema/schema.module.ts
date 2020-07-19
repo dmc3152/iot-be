@@ -7,6 +7,7 @@ import { ClientModule } from 'src/orientdb/client.module';
 @Module({
   imports: [ClientModule],
   controllers: [SchemaController],
-  providers: [SchemaService, SchemaRepository]
+  providers: [SchemaService, SchemaRepository],
+  exports: [SchemaService]
 })
 export class SchemaModule {}
