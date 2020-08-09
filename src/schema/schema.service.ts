@@ -36,7 +36,8 @@ export class SchemaService {
     public async updateDataSchema(data: UpdateDataSchemaDto, id: string): Promise<DataSchema> {
         const dataSchema = new DataSchema(data);
         dataSchema.schema = await updateDataSchemaRecursive(dataSchema.schema, this.schemaRepository);
-        return this.schemaRepository.updateDataSchema(dataSchema);
+        await this.schemaRepository.updateDataSchema(dataSchema);
+        return dataSchema;
 
         async function updateDataSchemaRecursive(schemas: Array<DataSchema>, schemaRepository: SchemaRepository) {
             for (let i in schemas) {

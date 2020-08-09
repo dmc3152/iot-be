@@ -71,9 +71,25 @@ export class SchemaRepository {
 
   // TODO: determine how to handle updating child schema associations on update
   async updateDataSchema(dataSchema: DataSchema): Promise<DataSchema> {
+    let schemaChildLookup;
+
+    try {
+      const originalSchema = await this.getDataSchemaById(dataSchema.id);
+      schemaChildLookup = originalSchema.schema.reduce((lookup, schema) => {
+        lookup[schema.id] = true;
+        return lookup;
+      }, {});
+    } catch(error) {
+      schemaChildLookup = {};
+    }
+
+    const schemaChildIds = Object.keys(schemaChildLookup);
+
     const schema = dataSchema.schema.reduce(function (schemas, schema) {
-      if (schema.id)
+      if (schema.id && !schemaChildIds[schema.id])
         schemas.push(schema.id);
+      else if (schemaChildIds[schema.id])
+        delete schemaChildIds[schema.id];
 
       return schemas;
     }, []);
@@ -83,6 +99,16 @@ export class SchemaRepository {
 
     try {
       return this.db
+        .let('deleteSchema', function (r) {
+          if (schemaChildIds.length > 0) {
+            schemaChildIds.forEach(id => {
+              r.delete("VERTEX", 'DataSchema')
+              .where('@rid = ' + id);
+            })
+          } else {
+            r.select().from(dataSchema.id); // placeholder... I don't know how to return null
+          }
+        })
         .let('schema', function (s) {
           if (schema.length) {
             s.create('edge', 'Applies')
@@ -97,7 +123,7 @@ export class SchemaRepository {
               unit: dataSchema.unit,
               name: dataSchema.name,
               key: dataSchema.key
-            })
+            });
         })
         .commit().return('$dataSchema').one();
     } catch (error) {
@@ -110,9 +136,13 @@ export class SchemaRepository {
       throw new BadRequestException();
 
     try {
-      return this.db.delete("VERTEX", 'DataSchema')
-        .where('@rid = ' + rid)
-        .one();
+      const schemas = await this.db.query(`SELECT FROM (TRAVERSE out("Applies") FROM ${rid})`);
+      schemas.forEach(schema => {
+        this.db.delete("VERTEX", 'DataSchema')
+          .where('@rid = ' + schema['@rid'])
+          .one();
+      });
+      return true;
     } catch (error) {
       throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
