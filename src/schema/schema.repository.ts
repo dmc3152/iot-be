@@ -83,16 +83,16 @@ export class SchemaRepository {
       schemaChildLookup = {};
     }
 
-    const schemaChildIds = Object.keys(schemaChildLookup);
-
     const schema = dataSchema.schema.reduce(function (schemas, schema) {
-      if (schema.id && !schemaChildIds[schema.id])
+      if (schema.id && !schemaChildLookup[schema.id])
         schemas.push(schema.id);
-      else if (schemaChildIds[schema.id])
-        delete schemaChildIds[schema.id];
+      else if (schemaChildLookup[schema.id])
+        delete schemaChildLookup[schema.id];
 
       return schemas;
     }, []);
+    
+    const schemaChildIds = Object.keys(schemaChildLookup);
 
     if (!dataSchema.id)
       throw new BadRequestException();
