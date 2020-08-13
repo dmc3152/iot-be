@@ -9,7 +9,7 @@ export class SchemaRepository {
 
   async getDataSchemas(userId): Promise<Array<DataSchema>> {
     try {
-      const result = await this.db.select('expand(out("Created"))').from('User').where({ '@rid': userId }).all();
+      const result = await this.db.query(`SELECT * FROM (SELECT expand(out("Created")) FROM ${userId}) WHERE in("Applies").size() = 0`).all();
       return result.map(dataSchema => new DataSchema(dataSchema));
     } catch (error) {
       throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
