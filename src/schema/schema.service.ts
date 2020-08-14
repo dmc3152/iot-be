@@ -9,7 +9,12 @@ export class SchemaService {
     constructor(private schemaRepository: SchemaRepository) { }
 
     public async getDataSchemas(userId: string): Promise<DataSchema[]> {
-        return this.schemaRepository.getDataSchemas(userId);
+        const dataSchemas = await this.schemaRepository.getDataSchemas(userId);
+
+        for (let i in dataSchemas)
+            dataSchemas[i] = await this.getDataSchemaById(dataSchemas[i].id);
+
+        return dataSchemas;
     }
 
     public async getDataSchemaById(id: string): Promise<DataSchema> {
