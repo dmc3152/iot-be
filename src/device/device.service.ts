@@ -66,6 +66,7 @@ export class DeviceService {
                         'name': schemas[i].name,
                         'key': schemas[i].key,
                         'unit': schemas[i].unit,
+                        'type': schemas[i].type,
                         'schema': schemas[i].schema
                     };
                     schemas[i] = await schemaService.updateDataSchema(schemaDto, userId);

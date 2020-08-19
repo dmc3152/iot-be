@@ -48,7 +48,8 @@ export class SchemaRepository {
           .set({
             unit: dataSchema.unit,
             name: dataSchema.name,
-            key: dataSchema.key
+            key: dataSchema.key,
+            type: dataSchema.type
           })
       })
         .let('owns', function (o) {
@@ -122,7 +123,8 @@ export class SchemaRepository {
             .set({
               unit: dataSchema.unit,
               name: dataSchema.name,
-              key: dataSchema.key
+              key: dataSchema.key,
+              type: dataSchema.type
             });
         })
         .commit().return('$dataSchema').one();

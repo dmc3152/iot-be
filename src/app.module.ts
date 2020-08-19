@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { DeviceModule } from './device/device.module';
 import { SchemaModule } from './schema/schema.module';
+import { DeviceDataModule } from "./deviceData/deviceData.module";
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { SchemaModule } from './schema/schema.module';
     AuthModule,
     UserModule,
     DeviceModule,
-    SchemaModule
+    SchemaModule,
+    DeviceDataModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,4 +1,4 @@
-import { DeviceData } from "./deviceData";
+import { DeviceData } from "../deviceData/deviceData";
 import { DataSchema } from "../schema/dataSchema";
 
 export class Device {

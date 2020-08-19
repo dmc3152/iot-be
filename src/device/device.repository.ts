@@ -40,6 +40,7 @@ export class DeviceRepository {
     try {
       const device = await this.db.select('*, out("Uses") as schema').from('Device').where(params).one();
       device.schema = await this.db.select().from(device.schema).all();
+      device.data = await this.db.select('expand(out("Stored"))').from('Device').where(params).all();
       return device ? new Device(device) : null;
     } catch (error) {
       throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -83,13 +84,56 @@ export class DeviceRepository {
     if (!device.guid || !device.id)
       throw new BadRequestException();
 
+    let schemaChildLookup;
+
     try {
-      return await this.db.update(device.id)
-        .set({
-          guid: device.guid,
-          name: device.name
+      const originalDevice = await this.getDeviceById(device.id);
+      schemaChildLookup = originalDevice.schema.reduce((lookup, schema) => {
+        lookup[schema.id] = true;
+        return lookup;
+      }, {});
+    } catch(error) {
+      schemaChildLookup = {};
+    }
+
+    const schema = device.schema.reduce(function (schemas, schema) {
+      if (schema.id && !schemaChildLookup[schema.id])
+        schemas.push(schema.id);
+      else if (schemaChildLookup[schema.id])
+        delete schemaChildLookup[schema.id];
+
+      return schemas;
+    }, []);
+    
+    const schemaChildIds = Object.keys(schemaChildLookup);
+
+    try {
+      return this.db.let('device', function (d) {
+          d.update(device.id)
+          .set({
+            guid: device.guid,
+            name: device.name
+          })
         })
-        .one();
+        .let('schema', function (s) {
+          if (schema.length) {
+            s.create('edge', 'Uses')
+              .from(device.id).to(schema)
+          } else {
+            s.select().from('$device'); // placeholder... I don't know how to return null
+          }
+        })
+        .let('deleteSchema', function (r) {
+          if (schemaChildIds.length > 0) {
+            schemaChildIds.forEach(id => {
+              r.delete("EDGE", 'Uses')
+              .from(device.id).to(id);
+            })
+          } else {
+            r.select().from(device.id); // placeholder... I don't know how to return null
+          }
+        })
+        .commit().return('$device').one();
     } catch (error) {
       throw error.code === 10 ? new ServiceUnavailableException() : new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }

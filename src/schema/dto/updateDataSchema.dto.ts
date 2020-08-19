@@ -3,6 +3,7 @@ export class UpdateDataSchemaDto {
     "name": string;
     "unit": string;
     "key": string;
+    "type": string;
     "schema": any;
 }
 
